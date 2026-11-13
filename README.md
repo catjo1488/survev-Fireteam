@@ -4,7 +4,7 @@ Open-source Spec Ops wave survival fork of Survev (surviv.io-style battle royale
 
 - Fireteam release: **1.7** (final official release)
 - Built on Survev **0.3.12**
-- Discord: https://discord.gg/w2MDPCpYqC
+- Discord: https://discord.gg/3vEpBWRUqH
 
 ## Requirements
 
@@ -79,7 +79,7 @@ game: {
   url: "https://your.domain"
   address: "127.0.0.1:8001"
   mapName: "specops"
-  maxSquadSize: 8
+  maxSquadSize: 16
   modes: { solo: true, duo: true, squad: true }
 }
 client: { enabled: true, port: 3000 }

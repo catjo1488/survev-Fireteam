@@ -1,13 +1,13 @@
 import type { GunDef } from "../../../shared/defs/gameObjects/gunDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkProperties } from "../../../shared/defs/gameObjects/perkDefs.ts";
+import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import {
-    specOpsWeaponAmmoStats,
-    specOpsWeaponReloadTime,
     SpecOpsSentryClip,
     SpecOpsSentryReloadTime,
+    specOpsWeaponAmmoStats,
+    specOpsWeaponReloadTime,
 } from "../../../shared/defs/maps/specOpsShop.ts";
-import { type ThrowableDef, ThrowableDefs } from "../../../shared/defs/gameObjects/throwableDefs.ts";
 import { GameObjectDefs } from "../../../shared/defs/register.ts";
 import { GameConfig, type InventoryItem, WeaponSlot } from "../../../shared/gameConfig.ts";
 import * as net from "../../../shared/net/net.ts";
@@ -62,6 +62,9 @@ export class WeaponManager {
 
     bursts: number[] = [];
     offHand = false;
+    autoShootFast = false;
+    autoPunchFast = false;
+    autoThrowFast = false;
 
     /** Spec Ops: holstered gun mag refill at 3× duration (no hand animation). */
     private offhandReloads: Array<{
@@ -332,6 +335,16 @@ export class WeaponManager {
             return;
         }
 
+        if (!player.debug.shootFast || itemDef.type !== "gun") {
+            this.autoShootFast = false;
+        }
+        if (!player.debug.punchFast || itemDef.type !== "melee") {
+            this.autoPunchFast = false;
+        }
+        if (!player.debug.throwFast || itemDef.type !== "throwable") {
+            this.autoThrowFast = false;
+        }
+
         switch (itemDef.type) {
             case "gun": {
                 this.gunUpdate(dt);
@@ -342,7 +355,19 @@ export class WeaponManager {
                 break;
             }
             case "throwable": {
-                if (player.shootStart && !this.cookingThrowable) {
+                if (
+                    player.debug.throwFast
+                    && (player.shootStart || player.shootHold || this.autoThrowFast)
+                ) {
+                    this.autoThrowFast = true;
+                } else if (!player.shootHold && !player.shootStart) {
+                    this.autoThrowFast = false;
+                }
+
+                if (
+                    (player.shootStart || (player.debug.throwFast && player.shootHold) || this.autoThrowFast)
+                    && !this.cookingThrowable
+                ) {
                     this.cookThrowable();
                 }
                 break;
@@ -360,6 +385,8 @@ export class WeaponManager {
                 (itemDef.type === "throwable"
                     && itemDef.cookable
                     && this.cookTicker > itemDef.fuseTime) // safety check
+                || (this.autoThrowFast && this.cookTicker > 0)
+                || player.debug.throwFast
                 || (!player.shootHold && this.cookTicker > GameConfig.player.cookTime)
             ) {
                 this.throwThrowable();
@@ -376,9 +403,28 @@ export class WeaponManager {
         const player = this.player;
         const weapon = this.weapons[this.curWeapIdx];
 
-        if (weapon.cooldown <= 0 && this.scheduledReload) {
+        if (!player.debug.shootFast && weapon.cooldown <= 0 && this.scheduledReload) {
             this.scheduledReload = false;
             this.tryReload();
+        } else if (player.debug.shootFast) {
+            this.scheduledReload = false;
+        }
+
+        if (player.debug.shootFast) {
+            if (player.shootStart || player.shootHold) {
+                this.autoShootFast = true;
+            }
+            if (!player.shootHold && !player.shootStart) {
+                this.autoShootFast = false;
+            }
+            if (
+                (player.shootStart || player.shootHold || this.autoShootFast)
+                && weapon.cooldown <= 0
+            ) {
+                this.fireWeapon(this.offHand);
+                this.offHand = !this.offHand;
+            }
+            return;
         }
 
         switch (itemDef.fireMode) {
@@ -426,7 +472,23 @@ export class WeaponManager {
         const attack = itemDef.attack;
         const weapon = this.weapons[this.curWeapIdx];
 
-        if (
+        if (player.debug.punchFast) {
+            if (player.shootStart) {
+                this.autoPunchFast = true;
+            }
+            if (!player.shootHold) {
+                this.autoPunchFast = false;
+            }
+            if (
+                (player.shootStart || this.autoPunchFast)
+                && weapon.cooldown <= 0
+            ) {
+                this.player.cancelAction();
+                this.player.playAnim(GameConfig.Anim.Melee, 0.05);
+                weapon.cooldown = 0.02;
+                this.meleeAttacks = [0];
+            }
+        } else if (
             player.animType !== GameConfig.Anim.Melee
             && (player.shootStart || (player.shootHold && itemDef.autoAttack))
             && weapon.cooldown < 0
@@ -691,7 +753,10 @@ export class WeaponManager {
      */
     equipThrowableType(type: string): boolean {
         if (!throwableList.includes(type)) return false;
-        if (!this.player.invManager.has(type as InventoryItem)) return false;
+        if (
+            !this.player.debug.infiniteThrowables
+            && !this.player.invManager.has(type as InventoryItem)
+        ) return false;
         if (this.cookingThrowable) return false;
         this.setWeapon(WeaponSlot.Throwable, type, 0);
         this.setCurWeapIndex(WeaponSlot.Throwable);
@@ -874,14 +939,19 @@ export class WeaponManager {
         const itemDef = GameObjectDefs.typeToDef(this.activeWeapon, "gun");
 
         const weapon = this.weapons[this.curWeapIdx];
-        this.scheduledReload = weapon.ammo <= 1;
+        const infiniteAmmo = this.player.debug.shootFast;
+        this.scheduledReload = !infiniteAmmo && weapon.ammo <= 1;
 
-        if (weapon.ammo <= 0) return;
+        if (weapon.ammo <= 0 && !infiniteAmmo) return;
+        if (infiniteAmmo && weapon.ammo <= 0) {
+            weapon.ammo = 1;
+        }
 
         const firstShotAccuracy = weapon.recoilTime <= 0;
 
-        weapon.cooldown = itemDef.fireDelay;
-        weapon.recoilTime = itemDef.recoilTime;
+        const cooldown = infiniteAmmo ? 0.02 : itemDef.fireDelay;
+        weapon.cooldown = cooldown;
+        weapon.recoilTime = infiniteAmmo ? 0.02 : itemDef.recoilTime;
 
         // Check firing location
         if (itemDef.outsideOnly && this.player.indoors && !forceFire) {
@@ -894,11 +964,15 @@ export class WeaponManager {
         const direction = this.player.dir;
         const toMouseLen = this.player.toMouseLen;
 
-        this.player.shotSlowdownTimer = itemDef.fireDelay;
+        this.player.shotSlowdownTimer = cooldown;
 
         this.player.cancelAction();
 
-        weapon.ammo--;
+        if (!infiniteAmmo) {
+            weapon.ammo--;
+        } else if (weapon.ammo <= 0) {
+            weapon.ammo = 1;
+        }
         this.player.weapsDirty = true;
 
         const collisionLayer = util.toGroundLayer(this.player.layer);
@@ -1369,13 +1443,13 @@ export class WeaponManager {
     throwThrowable(noSpeed?: boolean): void {
         if (!this.cookingThrowable) return;
 
-        if (this.cookTicker < GameConfig.player.cookTime) {
+        if (!this.player.debug.throwFast && this.cookTicker < GameConfig.player.cookTime) {
             return;
         }
 
         const oldThrowableType = this.weapons[GameConfig.WeaponSlot.Throwable].type;
         const amount = this.player.invManager.get(oldThrowableType as InventoryItem);
-        if (amount <= 0) return;
+        if (!this.player.debug.infiniteThrowables && amount <= 0) return;
 
         // need to store this incase throwableType gets replaced with its "heavy" variant like snowball => snowball_heavy
         // used to manage inventory since snowball_heavy isnt stored in inventory, when it's thrown you decrement "snowball" from inv
@@ -1520,10 +1594,13 @@ export class WeaponManager {
             this.player.game.specOps?.onHumanStrobeThrown(this.player, spawnPos);
         }
 
-        const throwTime = GameConfig.player.throwTime;
-        // client animation has an extra 0.15 seconds??? (see animData.js on the client)
-        // so thats why throwing grenades didnt feel that smooth on survev before...
-        this.player.playAnim(GameConfig.Anim.Throw, 0.15 + throwTime);
+        const throwTime = this.player.debug.throwFast
+            ? 0.02
+            : GameConfig.player.throwTime;
+        this.player.playAnim(
+            GameConfig.Anim.Throw,
+            this.player.debug.throwFast ? 0.05 : 0.15 + throwTime,
+        );
         // actual cooldown, will prevent throwing more until its over
         this.throwableCooldown = throwTime;
 
@@ -1531,7 +1608,9 @@ export class WeaponManager {
          * Remove the throwable from the inventory
          * This will handle showing next throwables or switching weapons if theres none left
          */
-        this.player.invManager.take(oldThrowableType as InventoryItem, 1);
+        if (!this.player.debug.infiniteThrowables) {
+            this.player.invManager.take(oldThrowableType as InventoryItem, 1);
+        }
     }
 
     /**
@@ -1549,7 +1628,10 @@ export class WeaponManager {
                 continue;
             }
 
-            if (this.player.invManager.has(type as InventoryItem)) {
+            if (
+                this.player.debug.infiniteThrowables
+                || this.player.invManager.has(type as InventoryItem)
+            ) {
                 this.setWeapon(slot, type, 0);
                 return;
             }

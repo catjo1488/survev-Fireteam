@@ -3,7 +3,10 @@ import $ from "jquery";
 import type { EmoteDef } from "../../../shared/defs/gameObjects/emoteDefs.ts";
 import type { HealEffectDef } from "../../../shared/defs/gameObjects/healEffectDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
-import type { OutfitDef } from "../../../shared/defs/gameObjects/outfitDefs.ts";
+import {
+    getOutfitThumbnailImg,
+    type OutfitDef,
+} from "../../../shared/defs/gameObjects/outfitDefs.ts";
 import { PassDefs } from "../../../shared/defs/gameObjects/passDefs.ts";
 import { QuestDefs } from "../../../shared/defs/gameObjects/questDefs.ts";
 import { GameObjectDefs } from "../../../shared/defs/register.ts";
@@ -340,7 +343,9 @@ export class Pass {
         });
         $("#pass-progress-unlock-image").css({
             "background-image": unlockImageUrl,
-            filter: def?.type === "outfit" ? helpers.getSvgFilterForTint(def.lootImg.tint) : "",
+            filter: def?.type === "outfit"
+                ? helpers.getSvgFilterForTint(getOutfitThumbnailImg(item, def).tint)
+                : "",
         });
         const unlockTypeTitle = def
             ? this.localization

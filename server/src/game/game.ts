@@ -32,6 +32,7 @@ export interface JoinTokenData {
     findGameIp: string;
     loadout?: Loadout;
     quests?: string[];
+    editorAuthorized: boolean;
     /** Prefer reclaiming this network player id (page reload / reconnect). */
     reclaimPlayerId?: number;
     groupData: {
@@ -62,6 +63,7 @@ export class Game {
     config: ServerGameConfig;
     modeManager: GameModeManager;
     specOps?: SpecOpsManager;
+    private clearExplosionDecalsAfterUpdate = false;
 
     now!: number;
     profiler = new Profiler();
@@ -253,6 +255,10 @@ export class Game {
         this.profiler.addSample("explosions");
         this.explosionBarn.update();
         this.profiler.endSample();
+        if (this.clearExplosionDecalsAfterUpdate) {
+            this.decalBarn.clearExplosionDecals();
+            this.clearExplosionDecalsAfterUpdate = false;
+        }
 
         this.profiler.addSample("smoke");
         this.smokeBarn.update(dt);
@@ -312,6 +318,10 @@ export class Game {
                 this.tickTimes = [];
             }
         }
+    }
+
+    scheduleExplosionDecalClear(): void {
+        this.clearExplosionDecalsAfterUpdate = true;
     }
 
     netSync() {
@@ -544,6 +554,7 @@ export class Game {
                 findGameIp: token.ip,
                 loadout: token.loadout,
                 quests: token.quests,
+                editorAuthorized: token.editorAuthorized === true,
                 reclaimPlayerId: token.reclaimPlayerId,
             });
         }

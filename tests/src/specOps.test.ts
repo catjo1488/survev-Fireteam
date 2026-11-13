@@ -14,6 +14,8 @@ import { MeleeDefs } from "../../shared/defs/gameObjects/meleeDefs.ts";
 import { PerkDefs } from "../../shared/defs/gameObjects/perkDefs.ts";
 import { MapDefs } from "../../shared/defs/mapDefs.ts";
 import { isSpecOpsMapName, pickSpecOpsMapName, SpecOpsMapPool } from "../../shared/defs/maps/specOpsDefs.ts";
+import { zClientRoomData } from "../../shared/types/team.ts";
+import { zFindGamePrivateBody } from "../../server/src/utils/types.ts";
 import {
     shopApproachBlocked,
     SpecOpsAllyRoles,
@@ -3034,7 +3036,8 @@ test("maxSquadSize is clamped and used as Spec Ops squad cap", () => {
     expect(teamSizeForMode(TeamMode.Duo, 8)).toBe(2);
     expect(teamSizeForMode(TeamMode.Squad, 8)).toBe(8);
     expect(clampMaxSquadSize(1)).toBe(2);
-    expect(clampMaxSquadSize(99)).toBe(8);
+    expect(teamSizeForMode(TeamMode.Squad, 16)).toBe(16);
+    expect(clampMaxSquadSize(99)).toBe(16);
     expect(clampMaxSquadSize(4)).toBe(4);
 
     const prev = Config.maxSquadSize;
@@ -3053,6 +3056,52 @@ test("maxSquadSize is clamped and used as Spec Ops squad cap", () => {
         expect(game.canJoin).toBe(false);
         const ops = game.playerBarn.players.filter((p) => !p.specOpsAi);
         expect(new Set(ops.map((p) => p.groupId)).size).toBe(1);
+    } finally {
+        Config.maxSquadSize = prev;
+    }
+});
+
+test("squad size 16 is accepted by lobby and match request schemas", () => {
+    expect(zClientRoomData.safeParse({
+        roomUrl: "",
+        findingGame: false,
+        region: "local",
+        autoFill: true,
+        gameModeIdx: 2,
+        mapName: "specops",
+        squadSize: 16,
+    }).success).toBe(true);
+
+    expect(zFindGamePrivateBody.safeParse({
+        region: "local",
+        version: 1,
+        autoFill: true,
+        mapName: "specops",
+        teamMode: TeamMode.Squad,
+        squadSize: 16,
+        playerData: [],
+    }).success).toBe(true);
+});
+
+test("Spec Ops squad size 16 keeps all operators in one group", () => {
+    const prev = Config.maxSquadSize;
+    Config.maxSquadSize = 16;
+    try {
+        const game = createGame(TeamMode.Squad, "test_specops");
+        expect(game.maxTeamSize).toBe(16);
+        const operators = [];
+        for (let i = 0; i < 16; i++) {
+            operators.push(game.playerBarn.addTestPlayer({ name: `Op${i}` }));
+            game.update(0.1);
+        }
+
+        expect(game.specOps!.humanCount).toBe(16);
+        expect(game.canJoin).toBe(false);
+        expect(new Set(operators.map((player) => player.groupId)).size).toBe(1);
+        expect(operators[0]!.group!.players.filter((player) => !player.specOpsAi))
+            .toHaveLength(16);
+        expect(operators[0]!.getPlayerStatus().length).toBe(game.playerBarn.players.length);
+        operators[0]!.setGroupStatuses();
     } finally {
         Config.maxSquadSize = prev;
     }
@@ -4797,6 +4846,8 @@ test("Spec Ops continuous waves skips the shop timer and starts the next wave", 
     beginSpecOpsWave(game, true);
     expect(game.specOps!.wave).toBe(1);
     expect(game.specOps!.phase).toBe("combat");
+    game.decalBarn.addDecal("decal_frag_explosion", v2.create(40, 40), 0);
+    game.decalBarn.addDecal("decal_vent_01", v2.create(50, 40), 0);
 
     const enemies = game.playerBarn.livingPlayers.filter((p) => p.specOpsAi);
     expect(enemies.length).toBeGreaterThan(0);
@@ -4815,6 +4866,8 @@ test("Spec Ops continuous waves skips the shop timer and starts the next wave", 
     expect(game.specOps!.phaseTimer).toBe(0);
     expect(game.over).toBe(false);
     expect(game.specOps!.enemiesAlive).toBeGreaterThan(0);
+    expect(game.decalBarn.decals.some((d) => d.type === "decal_frag_explosion")).toBe(false);
+    expect(game.decalBarn.decals.some((d) => d.type === "decal_vent_01")).toBe(true);
 });
 
 test("Spec Ops wait-for-next-wave continues past wave 30 instead of ending", () => {

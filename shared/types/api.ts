@@ -141,7 +141,7 @@ export interface SiteInfoRes {
     specOpsNpcSpawn?: boolean;
     /** Editor edit-msg debug enabled. */
     allowEditMsg?: boolean;
-    /** How many humans a Squad lobby / Spec Ops group allows (2–8). */
+    /** How many humans a Squad lobby / Spec Ops group allows (2–16). */
     maxSquadSize?: number;
     /** Spec Ops difficulty default (solo / new lobbies). */
     specOpsDifficulty?: SpecOpsDifficulty;

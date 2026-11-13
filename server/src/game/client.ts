@@ -183,6 +183,7 @@ export class ClientBarn {
         const client = new Client(this.game, socket, joinData.userId, joinData.findGameIp);
         player.client = client;
         client.player = player;
+        player.editorAuthorized = joinData.editorAuthorized;
         client.disconnected = false;
         this.clients.push(client);
 
@@ -687,6 +688,16 @@ export class Client {
         const rect = collider.createAabbExtents(player.pos, v2.create(width, height));
 
         const newVisibleObjects = game.grid.intersectAABBSetInto(rect, this._visibleObjectsScratch);
+        for (const obj of newVisibleObjects) {
+            if (
+                obj.__type === ObjectType.Player
+                && obj !== player
+                && this.player
+                && (obj as Player).isInvisibleTo(this.player)
+            ) {
+                newVisibleObjects.delete(obj);
+            }
+        }
         // client crashes if active player is not visible
         // so make sure its always added to visible objects
         newVisibleObjects.add(player);

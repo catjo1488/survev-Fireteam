@@ -1,9 +1,10 @@
 import { type Action, type Anim, GameConfig, HasteType } from "../gameConfig.ts";
+import { GameObjectTypeBits } from "../defs/register.ts";
 import type { Vec2 } from "../utils/v2.ts";
 import { BitSizes, type BitStream, Constants } from "./net.ts";
 
 const getBits = (n: number) => Math.ceil(Math.log2(n));
-const GameTypeBits = 10;
+const GameTypeBits = GameObjectTypeBits;
 // Keep in sync with Constants.MaxPerks in net.ts (avoid circular import at module init).
 const MaxPerks = 64;
 const MaxSerializedPerks = (1 << getBits(MaxPerks)) - 1;

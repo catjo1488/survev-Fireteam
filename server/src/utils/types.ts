@@ -62,7 +62,7 @@ export interface SaveGameBody {
 export interface ServerGameConfig {
     readonly mapName: MapDefKey;
     readonly teamMode: TeamMode;
-    /** Squad cap for this match (2–8). Duo/solo ignore this. */
+    /** Squad cap for this match (2–16). Duo/solo ignore this. */
     readonly squadSize?: number;
     readonly difficulty?: SpecOpsDifficulty;
     readonly endless?: boolean;
@@ -76,7 +76,7 @@ export const zFindGamePrivateBody = z.object({
     autoFill: z.boolean(),
     mapName: z.string(),
     teamMode: z.number(),
-    squadSize: z.number().int().min(2).max(8).optional(),
+    squadSize: z.number().int().min(2).max(16).optional(),
     difficulty: z.string().optional(),
     endless: z.boolean().optional(),
     contractsEnabled: z.boolean().optional(),
@@ -88,6 +88,7 @@ export const zFindGamePrivateBody = z.object({
             token: z.string(),
             userId: z.string().nullable(),
             ip: z.string(),
+            editorAuthorized: z.boolean().optional(),
             loadout: loadoutSchema.optional(),
             quests: z.array(z.string()).optional(),
             /** Spec Ops / reload: reclaim this in-game player id when possible. */

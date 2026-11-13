@@ -1,9 +1,10 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import type { Context } from "hono";
-import { Config } from "../config.ts";
-import { firstValidIp } from "../utils/requestIp.ts";
 import { db } from "../api/db/index.ts";
 import { userQuestTable, usersTable } from "../api/db/schema.ts";
+import { Config } from "../config.ts";
+import { isEditorAuthorized } from "../utils/editorAccess.ts";
+import { firstValidIp } from "../utils/requestIp.ts";
 import type { FindGamePrivateBody } from "../utils/types.ts";
 
 export function getHonoIp(c: Context, proxyHeader?: string): string | undefined {
@@ -57,6 +58,7 @@ export async function getFindGamePlayerData(
         {
             loadout: FindGamePrivateBody["playerData"][0]["loadout"];
             quests: FindGamePrivateBody["playerData"][0]["quests"];
+            slug: string;
         }
     > = {};
 
@@ -64,6 +66,7 @@ export async function getFindGamePlayerData(
         const query = await db
             .select({
                 userId: usersTable.id,
+                slug: usersTable.slug,
                 loadout: usersTable.loadout,
                 quests: sql<
                     string[]
@@ -82,6 +85,12 @@ export async function getFindGamePlayerData(
         userId,
         ip,
         reclaimPlayerId,
+        editorAuthorized: isEditorAuthorized(
+            userId ? accountData[userId]?.slug : undefined,
+            Config.serverMode,
+            Config.debug.allowEditMsg,
+            Config.editorUsers,
+        ),
         loadout: userId ? accountData[userId]?.loadout : undefined,
         quests: userId ? (accountData[userId]?.quests ?? []) : [],
     }));

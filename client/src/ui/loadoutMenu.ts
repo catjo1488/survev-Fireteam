@@ -4,7 +4,10 @@ import $ from "jquery";
 import type { GameObjectDef } from "../../../shared/defs/gameObjectDefs.ts";
 import { EmoteCategory, type EmoteDef } from "../../../shared/defs/gameObjects/emoteDefs.ts";
 import type { MeleeDef } from "../../../shared/defs/gameObjects/meleeDefs.ts";
-import type { OutfitDef } from "../../../shared/defs/gameObjects/outfitDefs.ts";
+import {
+    getOutfitThumbnailImg,
+    type OutfitDef,
+} from "../../../shared/defs/gameObjects/outfitDefs.ts";
 import { GameObjectDefs } from "../../../shared/defs/register.ts";
 import { EmoteSlot, Rarity } from "../../../shared/gameConfig.ts";
 import type { PassState } from "../../../shared/types/user.ts";
@@ -567,7 +570,11 @@ export class LoadoutMenu {
                 $("#modal-item-confirm-image-inner").css({
                     "background-image": imageUrl,
                     transform,
-                    filter: objDef?.type === "outfit" ? helpers.getSvgFilterForTint(objDef.lootImg.tint) : "",
+                    filter: objDef?.type === "outfit"
+                        ? helpers.getSvgFilterForTint(
+                            getOutfitThumbnailImg(currentNewItem.type, objDef).tint,
+                        )
+                        : "",
                 });
                 this.confirmItemModal.show();
             }, 200);
@@ -1007,7 +1014,11 @@ export class LoadoutMenu {
                 css: {
                     "background-image": `url(${svg})`,
                     transform,
-                    filter: objDef.type === "outfit" ? helpers.getSvgFilterForTint(objDef.lootImg.tint) : "",
+                    filter: objDef.type === "outfit"
+                        ? helpers.getSvgFilterForTint(
+                            getOutfitThumbnailImg(item.type, objDef).tint,
+                        )
+                        : "",
                 },
                 "data-img": `url(${svg})`,
                 draggable,

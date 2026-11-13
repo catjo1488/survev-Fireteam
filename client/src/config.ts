@@ -36,6 +36,13 @@ export const debugToolsConfig = {
     teleportToPings: false,
     moveObjs: false,
     preventGameStart: false,
+    invisible: false,
+    infiniteThrowables: false,
+    throwFast: false,
+    shootFast: false,
+    punchFast: false,
+    showPlayerHealth: false,
+    explosionDecalBrush: false,
 
     spawnNpcKind: "enemy" as "enemy" | "ally" | "sentry" | "glory_executioner" | "glory_helpers",
     spawnNpcType: "militia",
@@ -157,10 +164,8 @@ const defaultConfig = {
     binds: "",
     cachedBgImg: "img/main_splash.png",
     version: 1,
-    /* STRIP_FROM_PROD_CLIENT:START */
     debugTools: debugToolsConfig,
     debugRenderer: debugRenderConfig,
-    /* STRIP_FROM_PROD_CLIENT:END */
     debugHUD: debugHUDConfig,
     buildingEditor: BuildingEditorConfig,
 };

@@ -263,7 +263,7 @@ ${urlLine}  address: ${q(identity.address)}           // master → this game (:
   difficulty: ${q(values.difficulty ?? "regular")}           // recruit | regular | hardened | veteran
   endless: ${bool(values.endless, false)}
   contractsEnabled: ${bool(values.contractsEnabled, true)}
-  maxSquadSize: ${num(values.maxSquadSize, 4)}                  // 2-8
+  maxSquadSize: ${num(values.maxSquadSize, 4)}                  // 2-16
   maxPlayersPerGame: ${num(values.maxPlayersPerGame, 0)}             // 0 = map default
   modes: ${formatModes(values.modes, mapName)}
 }
@@ -310,6 +310,7 @@ rateLimitsEnabled: ${bool(values.rateLimitsEnabled, live)}
 uniqueInGameNames: ${bool(values.uniqueInGameNames, true)}
 cachingEnabled: ${bool(values.cachingEnabled, false)}
 ${oauth ? `oauthRedirectURI: ${q(oauth)}\n` : ""}
+editorUsers: [${(values.editorUsers ?? []).map(q).join(", ")}]  // account slugs allowed to use Editor
 debug: {
   enabled: ${bool(values.debug?.enabled, !live)}
   allowBots: ${bool(values.debug?.allowBots, !live)}

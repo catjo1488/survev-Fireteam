@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import Path from "node:path";
 import { createCanvas, type Image } from "canvas";
 import { type Bin, MaxRectsPacker, type Rectangle } from "maxrects-packer";
 import type { ISpritesheetData } from "pixi.js-legacy";
@@ -102,6 +104,10 @@ export class AtlasBuilder {
         const imagePromises: Promise<void>[] = [];
 
         for (const file of this.def.images) {
+            if (!fs.existsSync(Path.resolve(import.meta.dirname, "../public/img", file))) {
+                continue;
+            }
+
             let key: string | string[] = file.split("/").at(-1)!.split(".");
             key.pop(); // remove file extension
             key = `${key.join(".")}.img`;

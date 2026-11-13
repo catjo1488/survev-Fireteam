@@ -109,5 +109,10 @@ class DefinitionRegister<T extends { type: string }> {
     }
 }
 
-export const GameObjectDefs = new DefinitionRegister("Game", RawGameObjectDefs, 10);
+export const GameObjectTypeBits = 11;
+export const GameObjectDefs = new DefinitionRegister(
+    "Game",
+    RawGameObjectDefs,
+    GameObjectTypeBits,
+);
 export const MapObjectDefs = new DefinitionRegister("Map", RawMapObjectDefs, 12);

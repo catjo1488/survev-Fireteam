@@ -762,7 +762,7 @@ export class TeamMenu {
     }
 
     ensureSquadSizeSelectOptions() {
-        const maxSquad = Math.min(8, Math.max(2, this.siteInfo.info.maxSquadSize ?? 4));
+        const maxSquad = Math.min(16, Math.max(2, this.siteInfo.info.maxSquadSize ?? 4));
         if (this.squadSizeSelectPopulated && this.squadSizeSelect.children().length === maxSquad - 1) {
             return;
         }

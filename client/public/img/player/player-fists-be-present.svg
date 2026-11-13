@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="77"
+   height="77"
+   viewBox="0 0 77 77"
+   fill="none"
+   version="1.1"
+   id="svg5"
+   sodipodi:docname="player-hands-bePresent-left.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs5" />
+  <sodipodi:namedview
+     id="namedview5"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.7746544"
+     inkscape:cx="14.08725"
+     inkscape:cy="50.995846"
+     inkscape:window-width="1920"
+     inkscape:window-height="991"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg5" />
+  <rect
+     x="-13.263368"
+     y="-80.339554"
+     width="9.7691002"
+     height="34.007702"
+     rx="4.8845501"
+     transform="rotate(135.03434)"
+     fill="#ffd770"
+     id="rect1" />
+  <rect
+     x="58.450993"
+     y="-25.38353"
+     width="9.7691002"
+     height="34.007702"
+     rx="4.8845501"
+     transform="rotate(45.034342)"
+     fill="#ffd770"
+     id="rect2" />
+  <rect
+     x="18.122427"
+     y="-43.642258"
+     width="41.330799"
+     height="31.561701"
+     fill="#d22b2b"
+     id="rect3"
+     transform="rotate(90.034342)" />
+  <rect
+     x="14.365626"
+     y="-52.660858"
+     width="48.845501"
+     height="12.0235"
+     fill="#b61b1b"
+     id="rect4"
+     transform="rotate(90.034342)" />
+  <rect
+     x="33.903728"
+     y="-52.660858"
+     width="9.7691002"
+     height="40.579399"
+     fill="#ffc123"
+     id="rect5"
+     transform="rotate(90.034342)" />
+  <path
+     fill-rule="evenodd"
+     clip-rule="evenodd"
+     d="m 61.919843,43.924449 c 0.977217,0.973186 1.428138,2.271756 1.351776,3.544411 -0.06535,1.090261 -0.517296,2.16179 -1.355696,2.994387 -1.815881,1.803812 -4.758681,1.802349 -6.573799,-0.0029 l -9.99e-4,-10e-4 -3.009305,-2.997005 -0.0088,14.663198 -11.442898,-0.0069 0.0021,-3.556899 -27.179096,-0.01629 0.02345,-39.121293 27.179095,0.01629 0.0021,-3.5564 11.442898,0.0069 -0.0089,14.799997 3.012194,-2.992195 c 1.817282,-1.804611 4.760382,-1.803547 6.575499,0.0032 0.836901,0.833301 1.287258,1.905271 1.351305,2.99551 0.07484,1.272945 -0.377041,2.570675 -1.355224,3.542788 l -4.871101,4.839182 z m 8.62814,15.134074 c 5.443102,-5.406339 6.394954,-13.591469 2.8528,-19.969794 z m -0.0013,0.0013 c -1.763039,1.750944 -3.818348,3.032812 -6.009236,3.845799 l -0.0068,11.375398 -35.872794,-0.0215 0.0021,-3.556899 -27.1789947,-0.01629 0.038012,-63.4177282 27.1789952,0.016291 0.0021,-3.5563793 35.872793,0.021502 -0.0069,11.5127184 c 2.190011,0.815812 4.243772,2.100144 6.004621,3.852999 l 0.0013,0.0013 c 5.436267,5.413059 6.37703,13.598525 2.82886,19.971699"
+     fill="#000000"
+     id="path5" />
+</svg>

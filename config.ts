@@ -76,7 +76,7 @@ function titleCaseServerId(id: string): string {
 
 /**
  * How many players a lobby/group of this mode can hold.
- * Solo always 1, Duo always 2, Squad uses `maxSquadSize` (2–8).
+ * Solo always 1, Duo always 2, Squad uses `maxSquadSize` (2–16).
  */
 export function teamSizeForMode(teamMode: TeamMode, maxSquadSize: number): number {
     if (teamMode <= TeamMode.Solo) return 1;

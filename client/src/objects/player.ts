@@ -55,6 +55,7 @@ import { halloweenSpriteMap } from "./projectile.ts";
 import { createCasingParticle } from "./shot.ts";
 
 const submergeMaskScaleFactor = 0.1;
+const npcWorldCheckInterval = 0.1;
 
 function perksEqual(a: Array<{ type: string }>, b: Array<{ type: string }>) {
     if (a.length != b.length) {
@@ -210,6 +211,7 @@ export class Player implements AbstractObject {
     footRSubmergeSprite = createSprite();
     bodyEffectSprite = createSprite();
     patchSprite = createSprite();
+    frontSprite = createSprite();
     handLContainer = new PIXI.Container();
     handRContainer = new PIXI.Container();
 
@@ -285,6 +287,10 @@ export class Player implements AbstractObject {
     lastThrowablePickupSfxTicker = 0;
 
     isNearDoorError = false;
+    obstacleInteractionTicker = 0;
+    cachedInsideObstacle = false;
+    cachedDoorErrorType = "";
+    renderLayerTicker = 0;
     doorErrorTicker = 0;
     noCeilingRevealTicker = 0;
     frozenTicker = 0;
@@ -420,6 +426,7 @@ export class Player implements AbstractObject {
         this.bodyContainer.addChild(this.hipSprite);
         this.bodyContainer.addChild(this.patchSprite);
         this.bodyContainer.addChild(this.bodyEffectSprite);
+        this.bodyContainer.addChild(this.frontSprite);
         this.bodyContainer.addChild(this.handLContainer);
         this.bodyContainer.addChild(this.handRContainer);
         this.bodyContainer.addChild(this.visorSprite);
@@ -458,6 +465,11 @@ export class Player implements AbstractObject {
         this.wasInsideObstacle = false;
         this.insideObstacleType = "";
         this.lastInsideObstacleTime = 0;
+        this.isNearDoorError = false;
+        this.obstacleInteractionTicker = 0;
+        this.cachedInsideObstacle = false;
+        this.cachedDoorErrorType = "";
+        this.renderLayerTicker = 0;
         this.lastSwapIdx = -1;
         this.hasteSeq = -1;
         this.actionSoundInstance = null;
@@ -917,56 +929,63 @@ export class Player implements AbstractObject {
         const activeGroupId = playerBarn.getPlayerInfo(activeId).groupId;
         const playerInfo = playerBarn.getPlayerInfo(this.__id);
         const inSameGroup = playerInfo.groupId == activeGroupId;
-        this.nameText.text = playerInfo.name;
+        const status = playerBarn.getPlayerStatus(this.__id);
+        const health = status?.health;
+        const showHealth = playerBarn.showPlayerHealth && !!status?.visible && health !== undefined;
+        this.nameText.text = showHealth
+            ? `${playerInfo.name} (${Math.round(health)}%)`
+            : playerInfo.name;
         const distToActive = isActivePlayer
             ? 0
             : v2.length(v2.sub(this.m_pos, activePlayer.m_pos));
         const simplifyDistant = !isActivePlayer
             && distToActive > map.graphicsProfile.npcSimplifyDist;
-        this.nameText.visible = !isActivePlayer && inSameGroup && !simplifyDistant;
+        this.nameText.visible = !isActivePlayer && (inSameGroup || showHealth) && !simplifyDistant;
         this._gfxSimplifyDistant = simplifyDistant;
 
-        // Locate nearby obstacles that may play interaction effects
-        let insideObstacle: Obstacle | null = null;
-        let doorErrorObstacle = null;
-        const obstacles = map.m_obstaclePool.m_getPool();
-        for (let i = 0; i < obstacles.length; i++) {
-            const obstacle = obstacles[i];
-            if (
-                obstacle.active
-                && !obstacle.dead
-                && obstacle.layer == this.m_netData.m_layer
-            ) {
-                if (obstacle.isBush) {
-                    const rad = this.m_rad * 0.25;
-                    if (collider.intersectCircle(obstacle.collider, this.m_pos, rad)) {
-                        insideObstacle = obstacle;
-                    }
-                } else if (obstacle.isDoor) {
-                    const rad = this.m_rad + 0.25;
-                    const toDoor = v2.sub(obstacle.pos, this.m_pos);
-                    const doorDir = v2.rotate(v2.create(1, 0), obstacle.rot);
-                    const res = collider.intersectCircle(
-                        obstacle.collider,
-                        this.m_pos,
-                        rad,
-                    );
-                    if (
-                        res
-                        && (obstacle.door.locked
-                            || (obstacle.door.openOneWay && v2.dot(toDoor, doorDir) < 0))
-                    ) {
-                        doorErrorObstacle = obstacle;
+        // Nearby foliage and door checks only drive local interaction effects.
+        this.obstacleInteractionTicker -= dt;
+        if (isActivePlayer || this.obstacleInteractionTicker <= 0) {
+            this.cachedInsideObstacle = false;
+            this.cachedDoorErrorType = "";
+            const obstacles = map.m_obstaclePool.m_getPool();
+            for (let i = 0; i < obstacles.length; i++) {
+                const obstacle = obstacles[i];
+                if (
+                    obstacle.active
+                    && !obstacle.dead
+                    && obstacle.layer == this.m_netData.m_layer
+                ) {
+                    if (obstacle.isBush) {
+                        const rad = this.m_rad * 0.25;
+                        if (collider.intersectCircle(obstacle.collider, this.m_pos, rad)) {
+                            this.cachedInsideObstacle = true;
+                            this.insideObstacleType = obstacle.type;
+                        }
+                    } else if (obstacle.isDoor) {
+                        const rad = this.m_rad + 0.25;
+                        const toDoor = v2.sub(obstacle.pos, this.m_pos);
+                        const doorDir = v2.rotate(v2.create(1, 0), obstacle.rot);
+                        const res = collider.intersectCircle(
+                            obstacle.collider,
+                            this.m_pos,
+                            rad,
+                        );
+                        if (
+                            res
+                            && (obstacle.door.locked
+                                || (obstacle.door.openOneWay && v2.dot(toDoor, doorDir) < 0))
+                        ) {
+                            this.cachedDoorErrorType = obstacle.type;
+                        }
                     }
                 }
             }
+            this.obstacleInteractionTicker = npcWorldCheckInterval;
         }
 
         // Enter/exit bush effects
-        const isInside = insideObstacle != null;
-        if (isInside) {
-            this.insideObstacleType = insideObstacle!.type;
-        }
+        const isInside = this.cachedInsideObstacle;
         this.lastInsideObstacleTime -= dt;
         if (
             this.wasInsideObstacle != isInside
@@ -1009,12 +1028,12 @@ export class Player implements AbstractObject {
 
         // Play a sound effect when touching a one-way door from the wrong side
         const wasNearDoorError = this.isNearDoorError;
-        this.isNearDoorError = doorErrorObstacle != null;
+        this.isNearDoorError = this.cachedDoorErrorType !== "";
         this.doorErrorTicker -= dt;
         if (this.isNearDoorError && !wasNearDoorError && this.doorErrorTicker <= 0) {
             this.doorErrorTicker = 0.5;
 
-            const doorDef = MapObjectDefs.typeToDef(doorErrorObstacle!.type, "obstacle");
+            const doorDef = MapObjectDefs.typeToDef(this.cachedDoorErrorType, "obstacle");
             const doorSfx = doorDef.door?.sound.error!;
             audioManager.playSound(doorSfx, {
                 channel: "sfx",
@@ -1372,7 +1391,11 @@ export class Player implements AbstractObject {
         // in this frame that reference renderLayer / zOrd / zIdx. This issue is
         // prevalent for other effects that reference the player outside of
         // update, like shot shell particle creation.
-        this.updateRenderLayer(isActivePlayer, activePlayer, map);
+        this.renderLayerTicker -= dt;
+        if (isActivePlayer || this.renderLayerTicker <= 0) {
+            this.updateRenderLayer(isActivePlayer, activePlayer, map);
+            this.renderLayerTicker = npcWorldCheckInterval;
+        }
 
         renderer.addPIXIObj(
             this.auraContainer,
@@ -1538,6 +1561,10 @@ export class Player implements AbstractObject {
         const outfitDef = GameObjectDefs.typeToDef(this.m_netData.m_outfit, "outfit");
         const outfitImg = outfitDef.skinImg;
         const bodyScale = this.m_bodyRad / GameConfig.player.radius;
+        const activeWeapDef = GameObjectDefs.typeToDef(this.m_netData.m_activeWeapon) as
+            | GunDef
+            | MeleeDef
+            | ThrowableDef;
 
         this.bodySprite.texture = PIXI.Texture.from(outfitImg.baseSprite);
         this.bodySprite.tint = outfitDef.ghillie
@@ -1545,6 +1572,19 @@ export class Player implements AbstractObject {
             : outfitImg.baseTint;
         this.bodySprite.scale.set(0.25, 0.25);
         this.bodySprite.visible = true;
+
+        if (outfitImg.frontSprite) {
+            this.frontSprite.texture = PIXI.Texture.from(outfitImg.frontSprite);
+            this.frontSprite.position.set(
+                outfitImg.frontSpritePos?.x ?? 0,
+                outfitImg.frontSpritePos?.y ?? 0,
+            );
+            this.frontSprite.scale.set(0.25, 0.25);
+            this.frontSprite.tint = 0xffffff;
+            this.frontSprite.visible = true;
+        } else {
+            this.frontSprite.visible = false;
+        }
 
         if (
             this.m_netData.m_frozen
@@ -1603,8 +1643,14 @@ export class Player implements AbstractObject {
         const handTint = outfitDef.ghillie
             ? map.getMapDef().biome.colors.playerGhillie
             : outfitImg.handTint;
-        setHandSprite(this.handLSprite, outfitImg.handSprite, handTint);
-        setHandSprite(this.handRSprite, outfitImg.handSprite, handTint);
+        const fistSprites = activeWeapDef.type == "melee" ? activeWeapDef.handSprites : undefined;
+        if (fistSprites) {
+            setHandSprite(this.handLSprite, fistSprites.spriteL, 0xffffff);
+            setHandSprite(this.handRSprite, fistSprites.spriteR, 0xffffff);
+        } else {
+            setHandSprite(this.handLSprite, outfitImg.handSprite, handTint);
+            setHandSprite(this.handRSprite, outfitImg.handSprite, handTint);
+        }
 
         // Feet
         const setFootSprite = function(
@@ -1719,10 +1765,6 @@ export class Player implements AbstractObject {
             this.hipSprite.visible = false;
         }
 
-        const activeWeapDef = GameObjectDefs.typeToDef(this.m_netData.m_activeWeapon) as
-            | GunDef
-            | MeleeDef
-            | ThrowableDef;
         if (activeWeapDef.type == "gun") {
             this.gunRSprites.setType(this.m_netData.m_activeWeapon, bodyScale);
             this.gunRSprites.setVisible(true);
@@ -1764,8 +1806,12 @@ export class Player implements AbstractObject {
                 this.bodyContainer.addChildAt(this.handRContainer, bodyEffectIdx);
             }
         }
-        if (activeWeapDef.type == "melee" && this.m_netData.m_activeWeapon != "fists") {
-            const imgDef = activeWeapDef.worldImg!;
+        if (
+            activeWeapDef.type == "melee"
+            && this.m_netData.m_activeWeapon != "fists"
+            && activeWeapDef.worldImg
+        ) {
+            const imgDef = activeWeapDef.worldImg;
             this.meleeSprite.texture = PIXI.Texture.from(imgDef.sprite);
             this.meleeSprite.pivot.set(-imgDef.pos.x, -imgDef.pos.y);
             this.meleeSprite.scale.set(imgDef.scale.x / bodyScale, imgDef.scale.y / bodyScale);
@@ -1792,9 +1838,9 @@ export class Player implements AbstractObject {
                     sprite: string;
                     pos?: Vec2;
                     scale?: number;
-                },
+                } | undefined,
             ) {
-                if (def.sprite && def.sprite != "none") {
+                if (def?.sprite && def.sprite != "none") {
                     // Setup sprite
                     let imgKey = def.sprite;
                     // @HACK: halloween sprites
@@ -1811,8 +1857,8 @@ export class Player implements AbstractObject {
                 }
             };
             const handImgs = activeWeapDef.handImg?.[this.throwableState];
-            setThrowableSprite(this.objectLSprite, handImgs!.left);
-            setThrowableSprite(this.objectRSprite, handImgs!.right);
+            setThrowableSprite(this.objectLSprite, handImgs?.left);
+            setThrowableSprite(this.objectRSprite, handImgs?.right);
         } else {
             this.objectLSprite.visible = false;
             this.objectRSprite.visible = false;
@@ -1887,6 +1933,12 @@ export class Player implements AbstractObject {
             this.visorSprite.visible = true;
         } else {
             this.visorSprite.visible = false;
+        }
+        if (outfitImg.frontSprite) {
+            const frontSpriteIndex = outfitImg.aboveHand === false
+                ? this.bodyContainer.getChildIndex(this.handLContainer)
+                : this.bodyContainer.getChildIndex(this.visorSprite);
+            this.bodyContainer.addChildAt(this.frontSprite, frontSpriteIndex);
         }
         this.bodyContainer.scale.set(bodyScale, bodyScale);
     }
@@ -2638,6 +2690,7 @@ export class Player implements AbstractObject {
 
 export class PlayerBarn {
     playerPool = new Pool(Player);
+    private playerUpdateErrorLogs = new WeakMap<Player, { message: string; time: number }>();
     playerInfo: Record<number, PlayerInfo & { nameTruncated: string; anonName: string }> = {};
 
     playerIds: number[] = [];
@@ -2659,6 +2712,7 @@ export class PlayerBarn {
 
     playerStatus: Record<number, PlayerStatus> = {};
     anonPlayerNames = false;
+    showPlayerHealth = false;
 
     m_update(
         dt: number,
@@ -2695,9 +2749,19 @@ export class PlayerBarn {
                         displayingStats,
                         isSpectating!,
                     );
+                    this.playerUpdateErrorLogs.delete(p);
                 } catch (err) {
                     // One bad player (e.g. empty weapon type) must not black-screen everyone.
-                    console.error("Player update failed", p.__id, err);
+                    const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+                    const now = Date.now();
+                    const previousError = this.playerUpdateErrorLogs.get(p);
+                    if (
+                        previousError?.message !== message
+                        || now - previousError.time >= 5_000
+                    ) {
+                        console.error("Player update failed", p.__id, err);
+                        this.playerUpdateErrorLogs.set(p, { message, time: now });
+                    }
                     if (!p.m_netData.m_activeWeapon) {
                         p.m_netData.m_activeWeapon = "fists";
                     }

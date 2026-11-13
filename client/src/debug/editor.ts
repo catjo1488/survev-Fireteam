@@ -11,6 +11,7 @@ import { GameObjectDefs } from "../../../shared/defs/register.ts";
 import { EditMsg } from "../../../shared/net/editMsg.ts";
 import { math } from "../../../shared/utils/math.ts";
 import { util } from "../../../shared/utils/util.ts";
+import type Camera from "../camera.ts";
 import {
     type ConfigKey,
     type ConfigManager,
@@ -64,6 +65,8 @@ export class Editor {
     spawnLoot = false;
     promoteToRole = false;
     toggleLayer = false;
+    drawExplosionDecal = false;
+    explosionDecalPos = { x: 0, y: 0 };
 
     printLootStats = false;
 
@@ -275,6 +278,27 @@ export class Editor {
             folder.addBinding(this.toolParams, "preventGameStart", {
                 label: "Prevent Game Start",
             });
+            folder.addBinding(this.toolParams, "invisible", {
+                label: "Invisible",
+            });
+            folder.addBinding(this.toolParams, "infiniteThrowables", {
+                label: "Infinite Throwables",
+            });
+            folder.addBinding(this.toolParams, "throwFast", {
+                label: "Throw Fast",
+            });
+            folder.addBinding(this.toolParams, "shootFast", {
+                label: "Shoot Fast",
+            });
+            folder.addBinding(this.toolParams, "punchFast", {
+                label: "Punch Fast",
+            });
+            folder.addBinding(this.toolParams, "showPlayerHealth", {
+                label: "Show Player Health",
+            });
+            folder.addBinding(this.toolParams, "explosionDecalBrush", {
+                label: "Explosion Decal Brush",
+            });
             folder.on("change", () => {
                 this.sendMsg = true;
                 this.config.set("debugTools", this.toolParams);
@@ -484,7 +508,13 @@ export class Editor {
         }
     }
 
-    m_update(input: InputHandler) {
+    m_update(input: InputHandler, camera: Camera) {
+        if (this.enabled && this.toolParams.explosionDecalBrush && input.mousePressed(0)) {
+            this.explosionDecalPos = camera.m_screenToPoint(input.mousePos);
+            this.drawExplosionDecal = true;
+            this.sendMsg = true;
+        }
+
         let zoom = this.toolParams.zoom;
         if (input.keyPressed(Key.Plus)) {
             zoom -= 8;
@@ -500,9 +530,6 @@ export class Editor {
             this.zoomBind.refresh();
         }
 
-        this.config.config.debugRenderer = this.renderParams;
-
-        this.setEditorHudHidden(this.enabled);
     }
 
     getMsg() {
@@ -532,6 +559,13 @@ export class Editor {
         msg.godMode = this.toolParams.godMode;
         msg.moveObjs = this.toolParams.moveObjs;
         msg.preventGameStart = this.toolParams.preventGameStart;
+        msg.invisible = this.toolParams.invisible;
+        msg.infiniteThrowables = this.toolParams.infiniteThrowables;
+        msg.throwFast = this.toolParams.throwFast;
+        msg.shootFast = this.toolParams.shootFast;
+        msg.punchFast = this.toolParams.punchFast;
+        msg.drawExplosionDecal = this.drawExplosionDecal;
+        msg.explosionDecalPos = this.explosionDecalPos;
 
         msg.npcIgnoreOperators = !!this.toolParams.npcIgnoreOperators;
 
@@ -561,8 +595,13 @@ export class Editor {
         this.printLootStats = false;
 
         this.toggleLayer = false;
+        this.drawExplosionDecal = false;
         this.spawnNpc = false;
         this.spawnNpcOneOfEach = false;
         this.sendMsg = false;
+    }
+
+    get blocksPrimaryFire() {
+        return this.enabled && this.toolParams.explosionDecalBrush;
     }
 }

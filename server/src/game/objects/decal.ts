@@ -1,3 +1,4 @@
+import { ExplosionDefs } from "../../../../shared/defs/gameObjects/explosionsDefs.ts";
 import { MapObjectDefs } from "../../../../shared/defs/register.ts";
 import { ObjectType } from "../../../../shared/net/objectSerializeFns.ts";
 import type { AABB, Circle } from "../../../../shared/utils/coldet.ts";
@@ -8,6 +9,10 @@ import { util } from "../../../../shared/utils/util.ts";
 import { v2, type Vec2 } from "../../../../shared/utils/v2.ts";
 import type { Game } from "../game.ts";
 import { BaseGameObject } from "./gameObject.ts";
+
+const explosionDecalTypes = new Set(
+    Object.values(ExplosionDefs).map((def) => def.decalType),
+);
 
 export class DecalBarn {
     decals: Decal[] = [];
@@ -31,6 +36,19 @@ export class DecalBarn {
         this.decals.push(decal);
         this.game.objectRegister.register(decal);
         return decal;
+    }
+
+    clearExplosionDecals() {
+        let removed = 0;
+        for (let i = this.decals.length - 1; i >= 0; i--) {
+            const decal = this.decals[i];
+            if (explosionDecalTypes.has(decal.type)) {
+                this.decals.splice(i, 1);
+                decal.destroy();
+                removed++;
+            }
+        }
+        return removed;
     }
 }
 

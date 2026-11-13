@@ -1,3 +1,4 @@
+import type { Vec2 } from "../utils/v2.ts";
 import type { AbstractMsg, BitStream } from "./net.ts";
 
 export class EditMsg implements AbstractMsg {
@@ -24,6 +25,13 @@ export class EditMsg implements AbstractMsg {
     godMode = false;
     moveObjs = false;
     preventGameStart = false;
+    invisible = false;
+    infiniteThrowables = false;
+    throwFast = false;
+    shootFast = false;
+    punchFast = false;
+    drawExplosionDecal = false;
+    explosionDecalPos: Vec2 = { x: 0, y: 0 };
 
     spawnNpcKind = "";
     spawnNpcType = "";
@@ -76,6 +84,15 @@ export class EditMsg implements AbstractMsg {
         }
 
         s.writeBoolean(this.npcIgnoreOperators);
+        s.writeBoolean(this.invisible);
+        s.writeBoolean(this.infiniteThrowables);
+        s.writeBoolean(this.throwFast);
+        s.writeBoolean(this.shootFast);
+        s.writeBoolean(this.punchFast);
+        s.writeBoolean(this.drawExplosionDecal);
+        if (this.drawExplosionDecal) {
+            s.writeMapPos(this.explosionDecalPos, 11);
+        }
     }
 
     deserialize(s: BitStream) {
@@ -126,5 +143,14 @@ export class EditMsg implements AbstractMsg {
         }
 
         this.npcIgnoreOperators = s.readBoolean();
+        this.invisible = s.readBoolean();
+        this.infiniteThrowables = s.readBoolean();
+        this.throwFast = s.readBoolean();
+        this.shootFast = s.readBoolean();
+        this.punchFast = s.readBoolean();
+        this.drawExplosionDecal = s.readBoolean();
+        if (this.drawExplosionDecal) {
+            this.explosionDecalPos = s.readMapPos(11);
+        }
     }
 }

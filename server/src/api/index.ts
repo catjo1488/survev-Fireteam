@@ -8,6 +8,7 @@ import { randomUUID } from "node:crypto";
 import pkgJson from "../../../package.json" with { type: "json" };
 import { type FindGameResponse, type PublicGamesResponse, type SiteInfoRes, zFindGameBody } from "../../../shared/types/api.ts";
 import { Config, loadedConfigPath } from "../config.ts";
+import { isEditorAuthorized } from "../utils/editorAccess.ts";
 import { GIT_VERSION } from "../utils/gitRevision.ts";
 import { logErrorToWebhook } from "../utils/logger.ts";
 import { appendClientLog, appendClientLogs } from "../utils/clientLogStore.ts";
@@ -80,6 +81,30 @@ app.use(
         maxAge: 3600,
     }),
 );
+
+app.get("/api/editor/check/:slug", (c) => {
+    const slug = c.req.param("slug");
+    return c.json({
+        allowed: isEditorAuthorized(
+            slug || undefined,
+            Config.serverMode,
+            Config.debug.allowEditMsg,
+            Config.editorUsers,
+        ),
+    });
+});
+
+app.get("/api/editor/check", (c) => {
+    const slug = c.req.query("slug");
+    return c.json({
+        allowed: isEditorAuthorized(
+            slug,
+            Config.serverMode,
+            Config.debug.allowEditMsg,
+            Config.editorUsers,
+        ),
+    });
+});
 
 // @TODO: figure out the origins for this..
 // app.use(csrf())

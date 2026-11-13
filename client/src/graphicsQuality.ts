@@ -260,5 +260,5 @@ export function explosionRippleMult(highResTex: boolean): number {
 /** Bump when announcement copy changes so snoozed users see the new note. */
 export const COMMUNITY_ANNOUNCEMENT_VERSION = 5;
 export const COMMUNITY_ANNOUNCEMENT_SNOOZE_MS = 14 * 24 * 60 * 60 * 1000;
-export const COMMUNITY_DISCORD_URL = "https://discord.gg/w2MDPCpYqC";
+export const COMMUNITY_DISCORD_URL = "https://discord.gg/3vEpBWRUqH";
 export const COMMUNITY_CHANGELOG_URL = "changelogRec.html";

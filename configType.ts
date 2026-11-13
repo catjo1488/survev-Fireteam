@@ -93,6 +93,9 @@ export interface ConfigType {
      */
     apiPublicUrl?: string;
 
+    /** Authenticated account slugs allowed to use the editor; requires debug.allowEditMsg. */
+    editorUsers?: string[];
+
     /**
      * Listen host for API, game, and vite. Live does not override this when set.
      * Omit on live to default to 127.0.0.1. Clients use advertiseHost / publicAddress.
@@ -236,7 +239,7 @@ export interface ConfigType {
 
     /**
      * How many players can be in a Squad lobby / Spec Ops group.
-     * Duo stays 2. Solo stays 1. Clamped to 2–8 (HUD has 8 teammate bars).
+     * Duo stays 2. Solo stays 1. Clamped to 2–16 (HUD supports 16 teammate bars).
      * @default 4
      */
     maxSquadSize: number;

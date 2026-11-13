@@ -4678,48 +4678,6 @@ a:active {
   font-weight: 500;
 }
 
-#modal-community-announce {
-  background-color: rgba(0, 0, 0, 0.78);
-  z-index: 130;
-}
-
-#modal-community-announce .modal-content {
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: min(440px, 92vw);
-  max-width: 440px;
-}
-
-#modal-community-announce .modal-body-text {
-  margin-bottom: 14px;
-  line-height: 1.45;
-}
-
-.community-announce-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.community-announce-link {
-  display: inline-block;
-  padding: 8px 14px;
-  text-decoration: none;
-}
-
-.community-announce-footer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-}
-
-.community-announce-footer .close-footer {
-  margin: 0;
-  cursor: pointer;
-}
-
 .language-select option {
   opacity: 0.5;
   color: #000;

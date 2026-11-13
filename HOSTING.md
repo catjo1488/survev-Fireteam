@@ -153,7 +153,7 @@ game: {
   difficulty: "regular"
   endless: true
   contractsEnabled: true
-  maxSquadSize: 8
+  maxSquadSize: 16
   modes: {
     solo: true
     duo: true

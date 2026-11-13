@@ -29,7 +29,7 @@ function sleep(ms: number) {
 }
 
 function randPlayers(): number {
-    return 2 + Math.floor(Math.random() * 7); // 2–8
+    return 2 + Math.floor(Math.random() * 15); // 2–16
 }
 
 function resolveGameUrl(urls: string[] | undefined, gameId: string): string {

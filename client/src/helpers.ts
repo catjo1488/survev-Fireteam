@@ -1,6 +1,7 @@
 import $ from "jquery";
 
 import type { MeleeDef } from "../../shared/defs/gameObjects/meleeDefs.ts";
+import { getOutfitThumbnailImg } from "../../shared/defs/gameObjects/outfitDefs.ts";
 import { type MapDefKey, MapDefs } from "../../shared/defs/mapDefs.ts";
 import { GameObjectDefs } from "../../shared/defs/register.ts";
 import * as net from "../../shared/net/net.ts";
@@ -219,7 +220,8 @@ export const helpers = {
             case "crosshair":
                 return `img/crosshairs/${def.texture.slice(0, -4)}.svg`;
             case "outfit": {
-                return `img/loot/${def.lootImg.sprite.slice(0, -4)}.svg`;
+                const lootImg = getOutfitThumbnailImg(gameType, def);
+                return `img/loot/${lootImg.sprite.slice(0, -4)}.svg`;
             }
             default:
                 return "";

@@ -5,6 +5,7 @@ import * as net from "../../shared/net/net.ts";
 import { ObjectType } from "../../shared/net/objectSerializeFns.ts";
 import { math } from "../../shared/utils/math.ts";
 import { v2 } from "../../shared/utils/v2.ts";
+import { api } from "./api.ts";
 import type { Ambiance } from "./ambiance.ts";
 import type { AudioManager } from "./audioManager.ts";
 import { Camera } from "./camera.ts";
@@ -18,9 +19,7 @@ import {
 import { DebugHUD } from "./debug/debugHUD.ts";
 import { debugLines } from "./debug/debugLines.ts";
 
-/* STRIP_FROM_PROD_CLIENT:START */
 import { Editor } from "./debug/editor.ts";
-/* STRIP_FROM_PROD_CLIENT:END */
 
 import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { SpectateAction } from "../../shared/net/spectateMsg.ts";
@@ -128,6 +127,9 @@ export class Game {
     m_useDebugZoom!: boolean;
 
     editor!: Editor;
+    m_isEditor = false;
+    private editorAccessRequestId = 0;
+    private currentMapSeed?: number;
     debugHUD!: DebugHUD;
 
     seq!: number;
@@ -155,9 +157,62 @@ export class Game {
             opts?: { canRejoin: boolean },
         ) => void,
     ) {
-        if (IS_DEV) {
-            this.editor = new Editor(this.m_config);
-        }
+        this.editor = new Editor(this.m_config);
+    }
+
+    private clearEditorAccess() {
+        this.editorAccessRequestId++;
+        this.m_isEditor = false;
+        this.editor?.setDebugAllowed(false);
+    }
+
+    private checkEditorAccess(slug: string) {
+        const requestId = ++this.editorAccessRequestId;
+        this.m_isEditor = false;
+        this.editor.setDebugAllowed(false);
+        if (!slug && !IS_DEV) return;
+
+        fetch(api.resolveUrl(`/api/editor/check?slug=${encodeURIComponent(slug)}`))
+            .then(async (response) => {
+                if (!response.ok) {
+                    throw new Error(`Editor access check failed (${response.status})`);
+                }
+                const data: unknown = await response.json();
+                if (
+                    !data
+                    || typeof data !== "object"
+                    || !("allowed" in data)
+                    || typeof data.allowed !== "boolean"
+                ) {
+                    throw new Error("Editor access check returned an invalid response");
+                }
+                return data.allowed;
+            })
+            .then((allowed) => {
+                if (requestId !== this.editorAccessRequestId) return;
+                this.m_isEditor = allowed;
+                this.editor.setDebugAllowed(allowed);
+                if (allowed && IS_DEV) {
+                    this.editor.setEnabled(true);
+                }
+                if (allowed && this.editor.enabled) {
+                    this.editor.sendMsg = true;
+                }
+                if (allowed && this.m_map?.mapLoaded) {
+                    if (this.currentMapSeed !== undefined) {
+                        this.editor.toolParams.mapSeed = this.currentMapSeed;
+                    }
+                    this.editor.pane.refresh();
+                    this.editor.setBotArenaMode(
+                        !!this.m_map.getMapDef().gameMode.specOpsBotArena,
+                    );
+                }
+            })
+            .catch((error: unknown) => {
+                if (requestId !== this.editorAccessRequestId) return;
+                this.clearEditorAccess();
+                console.error("Failed to check editor access:", error);
+            });
     }
 
     tryJoinGame(
@@ -166,6 +221,7 @@ export class Game {
         onConnectFail: () => void,
     ) {
         if (!this.connecting && !this.connected && !this.initialized) {
+            this.clearEditorAccess();
             if (this.joinConnectTimer) {
                 clearTimeout(this.joinConnectTimer);
                 this.joinConnectTimer = null;
@@ -416,6 +472,7 @@ export class Game {
     }
 
     free() {
+        this.clearEditorAccess();
         if (this.joinConnectTimer) {
             clearTimeout(this.joinConnectTimer);
             this.joinConnectTimer = null;
@@ -451,7 +508,7 @@ export class Game {
                     children: true,
                 });
             }
-            if (IS_DEV && this.editor) {
+            if (this.editor) {
                 this.editor.setEnabled(false);
                 this.editor.setBotArenaMode(false);
             }
@@ -479,17 +536,22 @@ export class Game {
     update(dt: number) {
         this.debugHUD.m_update(dt, this);
 
-        if (IS_DEV && this.editor) {
-            if (this.m_input.keyPressed(Key.Tilde) && this.editor.debugAllowed) {
+        if (this.m_isEditor && this.editor) {
+            if (this.m_input.keyPressed(Key.Tilde)) {
                 this.editor.setEnabled(!this.editor.enabled);
             }
             if (this.editor.enabled) {
-                this.editor.m_update(this.m_input);
+                this.editor.m_update(this.m_input, this.m_camera);
             }
         }
+        this.m_playerBarn.showPlayerHealth = !!(
+            this.m_isEditor
+            && this.editor?.enabled
+            && this.editor.toolParams.showPlayerHealth
+        );
 
         let debug: DebugRenderOpts;
-        if (IS_DEV) {
+        if (IS_DEV || this.m_isEditor) {
             debug = this.m_config.get("debugRenderer")!;
             dt *= this.editor.toolParams.gameSpeedEnabled
                 ? this.editor.toolParams.gameSpeed
@@ -682,13 +744,17 @@ export class Game {
                 net.Constants.MouseMaxDist,
             );
             const shopOpen = this.m_uiManager.specOpsShopOpen;
-            inputMsg.shootStart = !shopOpen && (
+            const editorBrushActive = !!(
+                this.m_isEditor
+                && this.editor?.blocksPrimaryFire
+            );
+            inputMsg.shootStart = !shopOpen && !editorBrushActive && (
                 this.m_inputBinds.isBindPressed(Input.Fire)
                 || this.m_touch.shotDetected
                 || gp.firePressed
                 || throwableRadial.shootStart
             );
-            inputMsg.shootHold = !shopOpen && (
+            inputMsg.shootHold = !shopOpen && !editorBrushActive && (
                 this.m_inputBinds.isBindDown(Input.Fire)
                 || this.m_touch.shotDetected
                 || gp.fire
@@ -955,7 +1021,7 @@ export class Game {
         // Clear cached data
         this.m_ui2Manager.flushInput();
 
-        if (IS_DEV && this.editor?.sendMsg && (this.editor.enabled || this.editor.hasPendingSpawn())) {
+        if (this.m_isEditor && this.editor?.sendMsg && (this.editor.enabled || this.editor.hasPendingSpawn())) {
             var msg = this.editor.getMsg();
             this.m_sendMessage(net.MsgType.Edit, msg);
             this.editor.postSerialization();
@@ -1189,7 +1255,7 @@ export class Game {
             this.m_renderer,
         );
         this.m_emoteBarn.m_render(this.m_camera);
-        if (IS_DEV) {
+        if (IS_DEV || this.m_isEditor) {
             this.m_debugDisplay.clear();
             if (debug.enabled) {
                 debugLines.m_render(this.m_camera, this.m_debugDisplay);
@@ -1448,6 +1514,7 @@ export class Game {
             case net.MsgType.Joined: {
                 const msg = new net.JoinedMsg();
                 msg.deserialize(stream);
+                this.checkEditorAccess(this.m_config.get("profile")?.slug ?? "");
                 this.connecting = false;
                 this.connected = true;
                 this.onJoin();
@@ -1470,10 +1537,8 @@ export class Game {
                         channel: "ui",
                     });
                 }
-                if (IS_DEV) {
-                    if (this.editor.enabled) {
-                        this.editor.sendMsg = true;
-                    }
+                if (this.m_isEditor && this.editor.enabled) {
+                    this.editor.sendMsg = true;
                 }
 
                 SDK.gamePlayStart();
@@ -1482,6 +1547,7 @@ export class Game {
             case net.MsgType.Map: {
                 const msg = new net.MapMsg();
                 msg.deserialize(stream);
+                this.currentMapSeed = msg.seed;
                 this.m_map.loadMap(
                     msg,
                     this.m_camera,
@@ -1508,7 +1574,7 @@ export class Game {
                     this.m_uiManager.setRoleMenuActive(false);
                 }
 
-                if (IS_DEV) {
+                if (IS_DEV || this.m_isEditor) {
                     this.editor.toolParams.mapSeed = msg.seed;
                     this.editor.pane.refresh();
                     const botArena = !!this.m_map.getMapDef().gameMode.specOpsBotArena;

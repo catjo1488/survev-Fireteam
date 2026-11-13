@@ -90,7 +90,7 @@ const TeammateHudColors = [
     "white",
 ] as const;
 
-/** Clone extra teammate bars / map indicators so maxSquadSize up to 8 has HUD slots. */
+/** Clone extra teammate bars / map indicators for the largest supported squad. */
 function ensureTeammateHudSlots(slotCount: number) {
     const teamRoot = document.getElementById("ui-team");
     if (teamRoot) {
@@ -2060,7 +2060,7 @@ export class UiManager {
             support.append(
                 $("<a/>", {
                     class: "menu-option btn-darken ui-specops-wait-link",
-                    href: "https://discord.gg/w2MDPCpYqC",
+                    href: "https://discord.gg/3vEpBWRUqH",
                     target: "_blank",
                     rel: "noopener",
                     html: this.localization.translate("game-specops-wait-discord"),

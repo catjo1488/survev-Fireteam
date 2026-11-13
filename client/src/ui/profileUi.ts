@@ -259,6 +259,11 @@ export class ProfileUi {
             this.loadoutMenu.show();
             return false;
         });
+        $("#btn-login-discord").on("click", () => {
+            if (proxy.loginSupported("discord")) {
+                window.location.href = api.resolveUrl("/api/auth/discord");
+            }
+        });
         $(".account-details-user").on("click", () => {
             if (
                 this.userSettingsModal!.isVisible()
@@ -409,6 +414,9 @@ export class ProfileUi {
         // Loading icon
         const loading = this.account.requestsInFlight > 0;
         $(".account-loading").css("opacity", loading ? 1 : 0);
+
+        const discordLoginButton = $("#btn-login-discord");
+        discordLoginButton.prop("hidden", this.account.loggedIn);
 
         let usernameText = helpers.htmlEscape(this.account.profile.username || "");
         if (!this.account.loggedIn) {

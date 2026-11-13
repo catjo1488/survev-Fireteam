@@ -1,4 +1,8 @@
-import { GameObjectDefs, MapObjectDefs } from "../defs/register.ts";
+import {
+    GameObjectDefs,
+    GameObjectTypeBits,
+    MapObjectDefs,
+} from "../defs/register.ts";
 import { GameConfig } from "../gameConfig.ts";
 import * as bb from "../lib/bitBuffer.ts";
 import type { Collider } from "../utils/coldet.ts";
@@ -146,11 +150,11 @@ export class BitStream extends bb.BitStream {
     }
 
     writeGameType(type: string) {
-        this.writeBits(GameObjectDefs.typeToId(type), 10);
+        this.writeBits(GameObjectDefs.typeToId(type), GameObjectTypeBits);
     }
 
     readGameType() {
-        return GameObjectDefs.idToType(this.readBits(10));
+        return GameObjectDefs.idToType(this.readBits(GameObjectTypeBits));
     }
 
     writeMapType(type: string) {

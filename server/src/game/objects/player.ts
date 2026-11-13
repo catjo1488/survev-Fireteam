@@ -206,6 +206,7 @@ export class PlayerBarn {
             joinMsg.isMobile,
             joinData.quests,
         );
+        player.editorAuthorized = joinData.editorAuthorized;
 
         this.activatePlayer(player, group, team);
         player.setLoadout(
@@ -1460,6 +1461,10 @@ export class Player extends BaseGameObject {
         noClip: false,
         teleportToPings: false,
         godMode: false,
+        infiniteThrowables: false,
+        throwFast: false,
+        shootFast: false,
+        punchFast: false,
 
         /** drag and drop loot, obstacles, and buildings */
         moveObjMode: <MoveObjsMode> {
@@ -1475,6 +1480,8 @@ export class Player extends BaseGameObject {
 
     teamId = 1;
     groupId = 0;
+    editorAuthorized = false;
+    invisible = false;
 
     loadout = {
         outfit: "outfitBase",
@@ -4036,21 +4043,28 @@ export class Player extends BaseGameObject {
     getPlayerStatus() {
         const players: Player[] = this.game.modeManager.getPlayerStatusPlayers(this)!;
         return players.map((p) => {
-            const visible = this.game.map.specOpsMode
+            const invisible = p.isInvisibleTo(this);
+            const visible = !invisible && (this.game.map.specOpsMode
                 ? !p.dead || p.teamId === this.teamId
-                : p.teamId === this.teamId || p.timeUntilHidden > 0;
+                : p.teamId === this.teamId || p.timeUntilHidden > 0);
             return {
                 hasData: visible || p.playerStatusDirty,
-                pos: p.pos,
+                pos: invisible ? v2.create(0, 0) : p.pos,
                 visible,
                 dead: p.dead,
                 downed: p.downed,
                 role: p.role,
-                health: math.clamp((p.health / Math.max(p.maxHealth, 1)) * 100, 0, 100),
+                health: invisible
+                    ? 0
+                    : math.clamp((p.health / Math.max(p.maxHealth, 1)) * 100, 0, 100),
                 armor: math.clamp((p.specOpsArmor / SpecOpsMaxArmor) * 100, 0, 100),
                 boost: math.clamp(p.boost, 0, 100),
             };
         });
+    }
+
+    isInvisibleTo(viewer: Player) {
+        return this.invisible && viewer !== this;
     }
 
     getFreeGunSlot(obj: Loot) {
@@ -4831,7 +4845,7 @@ export class Player extends BaseGameObject {
     }
 
     processEditMsg(msg: net.EditMsg) {
-        if (!Config.debug.allowEditMsg) return;
+        if (!Config.debug.allowEditMsg || !this.editorAuthorized) return;
 
         if (msg.loadNewMap) {
             this.game.map.regenerate(msg.newMapSeed);
@@ -4855,10 +4869,44 @@ export class Player extends BaseGameObject {
         this.debug.noClip = msg.noClip;
         this.debug.teleportToPings = msg.teleportToPings;
         this.debug.godMode = msg.godMode;
+        if (this.invisible !== msg.invisible) {
+            this.invisible = msg.invisible;
+            this.playerStatusDirty = true;
+            this.setDirty();
+        }
+        const wasInfiniteThrowables = this.debug.infiniteThrowables;
+        this.debug.infiniteThrowables = msg.infiniteThrowables;
+        this.debug.throwFast = msg.throwFast;
+        this.debug.shootFast = msg.shootFast;
+        this.debug.punchFast = msg.punchFast;
+        if (
+            this.debug.infiniteThrowables
+            && !this.weaponManager.weapons[GameConfig.WeaponSlot.Throwable].type
+        ) {
+            this.weaponManager.showNextThrowable();
+        } else if (wasInfiniteThrowables && !this.debug.infiniteThrowables) {
+            const throwableType = this.weaponManager.weapons[
+                GameConfig.WeaponSlot.Throwable
+            ].type;
+            if (
+                throwableType
+                && !this.invManager.has(throwableType as InventoryItem)
+            ) {
+                this.weaponManager.showNextThrowable();
+            }
+        }
 
         this.debug.moveObjMode.enabled = msg.moveObjs;
 
         this.game.preventStart = msg.preventGameStart;
+
+        if (msg.drawExplosionDecal) {
+            const pos = v2.create(
+                math.clamp(msg.explosionDecalPos.x, 0, this.game.map.width),
+                math.clamp(msg.explosionDecalPos.y, 0, this.game.map.height),
+            );
+            this.game.decalBarn.addDecal("decal_frag_explosion", pos, this.layer);
+        }
 
         if (msg.spawnLootType) {
             const def = GameObjectDefs.typeToDefSafe(msg.spawnLootType);

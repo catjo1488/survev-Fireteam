@@ -135,9 +135,9 @@ export enum TeamMode {
 
 /**
  * In-game teammate health-bar slots. `maxSquadSize` in survev-config.hjson
- * is clamped to this (2–8). Extra teammates beyond this have no HUD bar.
+ * is clamped to this (2–16).
  */
-export const HudTeammateSlots = 8;
+export const HudTeammateSlots = 16;
 
 export enum FactionTeam {
     Red = 1,
@@ -149,7 +149,7 @@ export const GameConfig = {
     // the protocol we originated from was 78
     // remember to bump this every time a serialization function is changed
     // or a definition item added, removed or moved
-    protocolVersion: 1027,
+    protocolVersion: 1028,
     Action,
     Anim,
     DamageType,

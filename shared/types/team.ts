@@ -35,7 +35,7 @@ export interface RoomData {
     difficulty: string;
     /** Spec Ops continuous waves: no shop timer between waves; no wave-30 cap. */
     endless: boolean;
-    /** Squad lobby size (2–8, capped by server maxSquadSize). Duo ignores this. */
+    /** Squad lobby size (2–16, capped by server maxSquadSize). Duo ignores this. */
     squadSize: number;
     /** Fireteam name for duo/squad leaderboards. Empty = legacy per-player rows. */
     squadName: string;
@@ -118,7 +118,7 @@ export const zClientRoomData = z.object({
     mapName: z.string(),
     difficulty: z.string().optional(),
     endless: z.boolean().optional(),
-    squadSize: z.number().int().min(2).max(8).optional(),
+    squadSize: z.number().int().min(2).max(16).optional(),
     squadName: z.string().max(32).optional(),
 });
 

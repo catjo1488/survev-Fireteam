@@ -4,7 +4,7 @@ import type { FindGamePrivateBody, ServerGameConfig } from "../utils/types";
 export interface GameData {
     id: string;
     teamMode: TeamMode;
-    /** Squad cap for this match (2–8). */
+    /** Squad cap for this match (2–16). */
     squadSize: number;
     mapName: string;
     canJoin: boolean;

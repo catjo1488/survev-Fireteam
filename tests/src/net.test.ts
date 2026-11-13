@@ -1,8 +1,9 @@
 import { beforeEach, expect, test } from "vitest";
 import { Main } from "../../shared/defs/maps/baseDefs.ts";
+import { GameObjectDefs } from "../../shared/defs/register.ts";
 import { GameConfig, GasMode, HasteType } from "../../shared/gameConfig.ts";
 import * as net from "../../shared/net/net.ts";
-import { ObjectSerializeFns, ObjectType, type ObjectData } from "../../shared/net/objectSerializeFns.ts";
+import { type ObjectData, ObjectSerializeFns, ObjectType } from "../../shared/net/objectSerializeFns.ts";
 import { PerkModeRoleSelectMsg } from "../../shared/net/perkModeRoleSelectMsg.ts";
 import type { AABB, Circle } from "../../shared/utils/coldet.ts";
 import { collider } from "../../shared/utils/collider.ts";
@@ -15,6 +16,18 @@ beforeEach(() => {
     // reset the buff
     new Uint8Array(stream.arrayBuf).fill(0);
     stream.stream.byteIndex = 0;
+});
+
+test("Game object types se enough bits for all registered definitions", () => {
+    const types = GameObjectDefs.getAllTypes();
+    expect(types.length).toBeGreaterThan(1 << 10);
+
+    const gameTypeStream = new net.BitStream(new ArrayBuffer(8));
+    const lastType = types[types.length - 1];
+    gameTypeStream.writeGameType(lastType);
+    gameTypeStream.index = 0;
+
+    expect(gameTypeStream.readGameType()).toBe(lastType);
 });
 
 function randomPos() {
@@ -345,6 +358,35 @@ test("EditMsg roundtrip pacifist flag without spawn", () => {
 
     expect(outMsg.spawnNpcKind).toBe("");
     expect(outMsg.npcIgnoreOperators).toBe(true);
+});
+
+test("EditMsg roundtrip editor tools and explosion brush position", () => {
+    const inMsg = new net.EditMsg();
+    inMsg.invisible = true;
+    inMsg.infiniteThrowables = true;
+    inMsg.throwFast = true;
+    inMsg.shootFast = true;
+    inMsg.punchFast = true;
+    inMsg.drawExplosionDecal = true;
+    inMsg.explosionDecalPos = v2.create(111, 222);
+
+    stream.serializeMsg(net.MsgType.Edit, inMsg);
+    stream.stream.index = 0;
+    expect(stream.deserializeMsgType()).toBe(net.MsgType.Edit);
+
+    const outMsg = new net.EditMsg();
+    outMsg.deserialize(stream.getStream());
+
+    expect(outMsg).toMatchObject({
+        invisible: true,
+        infiniteThrowables: true,
+        throwFast: true,
+        shootFast: true,
+        punchFast: true,
+        drawExplosionDecal: true,
+    });
+    expect(outMsg.explosionDecalPos.x).toBeCloseTo(111, 0);
+    expect(outMsg.explosionDecalPos.y).toBeCloseTo(222, 0);
 });
 
 test("PerkModeRoleSelectMsg serializes Spec Ops unequip SKUs", () => {

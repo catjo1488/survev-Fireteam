@@ -2581,6 +2581,36 @@ body.steam-deck .specops-start .specops-lb-sidebar {
   display: none !important;
 }
 
+.specops-start .specops-discord-login {
+  align-items: center;
+  border-radius: 6px;
+  box-sizing: border-box;
+  display: flex;
+  font: inherit;
+  height: 38px;
+  justify-content: center;
+  margin: 0;
+  min-width: 154px;
+  padding: 0 10px;
+  text-decoration: none;
+}
+
+.specops-start .specops-discord-login[hidden] {
+  display: none !important;
+}
+
+.specops-start .specops-discord-login .login-button-name {
+  margin-left: 44px;
+  white-space: nowrap;
+}
+
+.specops-start .specops-discord-login .login-button-name > .icon {
+  height: 20px;
+  left: 10px;
+  top: 8px;
+  width: 20px;
+}
+
 /* ── Fit play + create-team UI on one phone screen ── */
 
 .specops-start #start-rotate-reminder {

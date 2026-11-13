@@ -6479,6 +6479,7 @@ export class SpecOpsManager {
     }
 
     private beginIntermission(): void {
+        this.game.scheduleExplosionDecalClear();
         // No wave-30 victory — either chain immediately (continuous) or open shop.
         // Contracts persist across shop into later waves (duration / cooldown).
         this.lastContractHudCode = -1;
