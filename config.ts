@@ -24,6 +24,18 @@ export let loadedConfigPath = "";
 export const MinSquadSize = 2;
 export const MaxSquadSize = HudTeammateSlots;
 
+export function resolveEditorMessageAccess(
+    serverMode: ServerMode,
+    debugEnabled: boolean,
+    allowEditMsg: boolean | undefined,
+    editorUsers: string[] | undefined,
+): boolean {
+    if (debugEnabled) return !!allowEditMsg;
+    return serverMode === "live"
+        && allowEditMsg === true
+        && (editorUsers?.length ?? 0) > 0;
+}
+
 export function clampMaxSquadSize(value: number): number {
     if (!Number.isFinite(value)) return 4;
     return Math.min(MaxSquadSize, Math.max(MinSquadSize, Math.round(value)));
@@ -874,9 +886,14 @@ export function getConfig(isProduction: boolean, dir: string) {
 
     if (config.debug.enabled === false) {
         config.debug.allowBots = false;
-        config.debug.allowEditMsg = false;
         config.debug.allowMockAccount = false;
         config.debug.allowNpcSpawn = false;
+        config.debug.allowEditMsg = resolveEditorMessageAccess(
+            config.serverMode,
+            false,
+            localConfig.debug?.allowEditMsg,
+            config.editorUsers,
+        );
     } else {
         config.debug.allowBots = !!config.debug.allowBots;
         config.debug.allowEditMsg = !!config.debug.allowEditMsg;

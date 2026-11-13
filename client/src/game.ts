@@ -166,13 +166,20 @@ export class Game {
         this.editor?.setDebugAllowed(false);
     }
 
-    private checkEditorAccess(slug: string) {
+    public refreshEditorAccess() {
+        if (!this.connected) return;
+        this.checkEditorAccess();
+    }
+
+    private checkEditorAccess() {
         const requestId = ++this.editorAccessRequestId;
         this.m_isEditor = false;
         this.editor.setDebugAllowed(false);
-        if (!slug && !IS_DEV) return;
 
-        fetch(api.resolveUrl(`/api/editor/check?slug=${encodeURIComponent(slug)}`))
+        fetch(api.resolveUrl("/api/editor/check"), {
+            cache: "no-store",
+            credentials: "include",
+        })
             .then(async (response) => {
                 if (!response.ok) {
                     throw new Error(`Editor access check failed (${response.status})`);
@@ -1514,9 +1521,9 @@ export class Game {
             case net.MsgType.Joined: {
                 const msg = new net.JoinedMsg();
                 msg.deserialize(stream);
-                this.checkEditorAccess(this.m_config.get("profile")?.slug ?? "");
                 this.connecting = false;
                 this.connected = true;
+                this.checkEditorAccess();
                 this.onJoin();
                 this.teamMode = msg.teamMode;
                 this.m_localId = msg.playerId;

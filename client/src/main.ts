@@ -497,6 +497,9 @@ export class Application {
                 onJoin,
                 onQuit,
             );
+            this.account.addEventListener("login", () => {
+                this.game?.refreshEditorAccess();
+            });
             this.game.editor?.setSpecOpsNpcSpawn(!!this.siteInfo.info.specOpsNpcSpawn);
             this.loadoutDisplay = new LoadoutDisplay(
                 this.pixi,

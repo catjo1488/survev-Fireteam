@@ -93,7 +93,11 @@ export interface ConfigType {
      */
     apiPublicUrl?: string;
 
-    /** Authenticated account slugs allowed to use the editor; requires debug.allowEditMsg. */
+    /**
+     * Authenticated account slugs allowed to use the editor. On live servers,
+     * an explicit debug.allowEditMsg: true and a non-empty allowlist enable only
+     * the scoped editor even when the general debug master switch is off.
+     */
     editorUsers?: string[];
 
     /**
@@ -515,8 +519,9 @@ export interface ConfigType {
      */
     debug: {
         /**
-         * Master switch. If false, allowBots / allowEditMsg / allowMockAccount / allowNpcSpawn
-         * are forced off. Set false for a public server.
+         * Master switch. If false, allowBots / allowMockAccount / allowNpcSpawn
+         * are forced off. A live server may still explicitly enable the
+         * allowlisted editor with allowEditMsg: true and a non-empty editorUsers list.
          * Live serverMode defaults this off unless you explicitly set enabled: true.
          */
         enabled: boolean;
@@ -534,7 +539,8 @@ export interface ConfigType {
          */
         allowBots: boolean;
         /**
-         * If clients can send edit msgs from the client-side debug editor
+         * If clients can send edit msgs from the client-side editor. When the
+         * debug master is off, this only enables Editor for allowlisted accounts.
          */
         allowEditMsg: boolean;
         /**

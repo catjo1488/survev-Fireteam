@@ -310,11 +310,11 @@ rateLimitsEnabled: ${bool(values.rateLimitsEnabled, live)}
 uniqueInGameNames: ${bool(values.uniqueInGameNames, true)}
 cachingEnabled: ${bool(values.cachingEnabled, false)}
 ${oauth ? `oauthRedirectURI: ${q(oauth)}\n` : ""}
-editorUsers: [${(values.editorUsers ?? []).map(q).join(", ")}]  // account slugs allowed to use Editor
+editorUsers: [${(values.editorUsers ?? []).map(q).join(", ")}]  // allowed Editor accounts; requires debug.allowEditMsg: true
 debug: {
   enabled: ${bool(values.debug?.enabled, !live)}
   allowBots: ${bool(values.debug?.allowBots, !live)}
-  allowEditMsg: ${bool(values.debug?.allowEditMsg, !live)}
+  allowEditMsg: ${bool(values.debug?.allowEditMsg, !live)}  // with editorUsers, enables scoped Editor even if enabled is false
   allowMockAccount: ${bool(values.debug?.allowMockAccount, !live)}
   allowNpcSpawn: ${bool(values.debug?.allowNpcSpawn, false)}
 }

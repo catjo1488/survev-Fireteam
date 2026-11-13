@@ -82,20 +82,24 @@ app.use(
     }),
 );
 
-app.get("/api/editor/check/:slug", (c) => {
-    const slug = c.req.param("slug");
-    return c.json({
-        allowed: isEditorAuthorized(
-            slug || undefined,
-            Config.serverMode,
-            Config.debug.allowEditMsg,
-            Config.editorUsers,
-        ),
-    });
-});
+app.get("/api/editor/check", async (c) => {
+    let slug: string | undefined;
+    if (Config.serverMode !== "dev" && Config.debug.allowEditMsg) {
+        const sessionToken = getCookie(c, "session");
+        if (sessionToken) {
+            try {
+                const account = await validateSessionToken(sessionToken);
+                if (!account.user?.banned) {
+                    slug = account.user?.slug;
+                }
+            } catch (err) {
+                server.logger.error("/api/editor/check: Failed to validate session", err);
+                return c.json({ error: "Failed to validate editor access" }, 500);
+            }
+        }
+    }
 
-app.get("/api/editor/check", (c) => {
-    const slug = c.req.query("slug");
+    c.header("Cache-Control", "no-store");
     return c.json({
         allowed: isEditorAuthorized(
             slug,
