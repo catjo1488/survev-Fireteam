@@ -7,9 +7,9 @@ const selectablePerks = Object.keys(PerkDefs);
 
 export const lockedSkins: readonly string[] = [
     "outfitReTag",
-    "outfitDev",
-    "outfitMod",
-    "outfitGD",
+    //"outfitDev",
+    //"outfitMod",
+    //"outfitGD",
 ];
 
 export function isSkinLocked(itemType: string): boolean {
@@ -24,7 +24,7 @@ export const privateOutfits = [
     "outfitPreacher",
     "outfitBoutique",
     "outfitNotEnough",
-    "outfitDev",
+    //"outfitDev",
     "outfitTheSurvivor",
     "outfitStepz",
 ];

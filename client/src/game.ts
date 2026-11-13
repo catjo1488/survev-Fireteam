@@ -167,7 +167,6 @@ export class Game {
     }
 
     public refreshEditorAccess() {
-        if (!this.connected) return;
         this.checkEditorAccess();
     }
 
@@ -228,7 +227,6 @@ export class Game {
         onConnectFail: () => void,
     ) {
         if (!this.connecting && !this.connected && !this.initialized) {
-            this.clearEditorAccess();
             if (this.joinConnectTimer) {
                 clearTimeout(this.joinConnectTimer);
                 this.joinConnectTimer = null;

@@ -497,6 +497,7 @@ export class Application {
                 onJoin,
                 onQuit,
             );
+            this.game.refreshEditorAccess();
             this.account.addEventListener("login", () => {
                 this.game?.refreshEditorAccess();
             });
