@@ -10,4 +10,5 @@ test("live mode requires an allowlisted account slug", () => {
     expect(isEditorAuthorized("editor", "live", true, ["editor"])).toBe(true);
     expect(isEditorAuthorized(undefined, "live", true, ["editor"])).toBe(false);
     expect(isEditorAuthorized("other", "live", true, ["editor"])).toBe(false);
+    expect(isEditorAuthorized(" Editor ", "live", true, ["editor"])).toBe(true);
 });

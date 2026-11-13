@@ -192,7 +192,7 @@ export class Game {
                 if (requestId !== this.editorAccessRequestId) return;
                 this.m_isEditor = allowed;
                 this.editor.setDebugAllowed(allowed);
-                if (allowed && IS_DEV) {
+                if (allowed) {
                     this.editor.setEnabled(true);
                 }
                 if (allowed && this.editor.enabled) {

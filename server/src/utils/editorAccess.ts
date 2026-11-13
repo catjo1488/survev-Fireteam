@@ -8,5 +8,7 @@ export function isEditorAuthorized(
 ): boolean {
     if (!allowEditMsg) return false;
     if (serverMode === "dev") return true;
-    return !!slug && editorUsers.includes(slug);
+    const normalizedSlug = slug?.trim().toLowerCase();
+    return !!normalizedSlug
+        && editorUsers.some((user) => user.trim().toLowerCase() === normalizedSlug);
 }
