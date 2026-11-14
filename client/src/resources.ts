@@ -9,6 +9,8 @@ import SoundDefs from "./soundDefs.ts";
 
 type AtlasDef = Record<Atlas, PIXI.ISpritesheetData[]>;
 
+const MaxTextureLoadRetries = 3;
+
 const spritesheetDefs = {
     low: lowResAtlasDefs as AtlasDef,
     high: highResAtlasDefs as AtlasDef,
@@ -26,17 +28,25 @@ function loadTexture(renderer: PIXI.IRenderer, url: string) {
         });
 
         baseTex.on("error", (baseTex) => {
-            console.log("BaseTex load error, retrying", url);
-            if (loadAttempts++ <= 3) {
+            if (loadAttempts >= MaxTextureLoadRetries) {
+                console.error("Failed to load texture after retries", url);
+                return;
+            }
+            loadAttempts++;
+            console.warn(
+                `Texture load failed; retry ${loadAttempts}/${MaxTextureLoadRetries}`,
+                url,
+            );
+            if (baseTex.source) {
                 setTimeout(
                     () => {
-                        if (baseTex.source) {
-                            baseTex.updateSourceImage("");
-                            baseTex.updateSourceImage(url.substring(5, url.length));
-                        }
+                        baseTex.updateSourceImage("");
+                        baseTex.updateSourceImage(url);
                     },
-                    (loadAttempts - 1) * 1000,
+                    loadAttempts * 1000,
                 );
+            } else {
+                console.error("Cannot retry texture load without a source", url);
             }
         });
     }
@@ -111,7 +121,7 @@ export class ResourceManager {
         public basePath = "",
     ) {
         this.textureRes = selectTextureRes(this.renderer, this.config);
-        PIXI.BasePrepare.uploadsPerFrame = 1;
+        PIXI.BasePrepare.uploadsPerFrame = 4;
     }
 
     isAtlasLoaded(name: Atlas) {

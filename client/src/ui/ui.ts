@@ -2069,7 +2069,7 @@ export class UiManager {
             support.append(
                 $("<a/>", {
                     class: "menu-option btn-darken ui-specops-wait-link",
-                    href: "https://ko-fi.com/zeropointbruh",
+                    href: "",
                     target: "_blank",
                     rel: "noopener",
                     html: this.localization.translate("game-specops-wait-kofi"),
