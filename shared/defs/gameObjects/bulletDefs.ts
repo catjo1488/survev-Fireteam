@@ -596,7 +596,7 @@ export const BaseDefs: Record<string, BulletDef> = {
     },
     bullet_pkp: {
         type: "bullet",
-        damage: 1000,
+        damage: 24,
         obstacleDamage: 2,
         falloff: 0.9,
         distance: 200,
